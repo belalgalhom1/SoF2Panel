@@ -49,7 +49,7 @@ SOF2Panel is a premium, web-based management dashboard designed to seamlessly pr
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/belalgalhom/sof2panel.git
+   git clone https://github.com/belalgalhom1/sof2panel.git
    cd sof2panel
    ```
 
