@@ -85,7 +85,7 @@
                     <h2>@yield('title', 'Dashboard')</h2>
                 </div>
                 
-                <a href="https://github.com/belalgalhom/SoF2Panel" target="_blank" style="margin-left: auto; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">
+                <a href="https://github.com/belalgalhom1/SoF2Panel" target="_blank" style="margin-left: auto; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">
                     <i data-feather="github" style="width: 18px; height: 18px;"></i>
                     <span class="hide-mobile">GitHub</span>
                 </a>
