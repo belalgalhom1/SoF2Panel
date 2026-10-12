@@ -193,35 +193,8 @@ class ServerService
         return true;
     }
 
-    public function downloadBackup(Server $server, \App\Models\Backup $backup): string
+    public function getSFTP(Host $host): SFTP
     {
-        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $backup->filename)) {
-            throw new \Exception("Invalid backup filename.");
-        }
-
-        $host = $server->host;
-        $ssh = $this->getSSH($host);
-        $ssh->setTimeout(0);
-
-        $cleanUsername = $server->ftp_username;
-        $backupPath = "/home/{$cleanUsername}/backups/{$backup->filename}";
-
-        $check = trim($ssh->exec("test -d " . escapeshellarg($backupPath) . " && echo OK || echo MISSING"));
-        if ($check !== 'OK') {
-            throw new \Exception("Backup folder not found on host.");
-        }
-
-        $remoteTar = "/tmp/backup_{$server->id}_{$backup->filename}.tar.gz";
-        $ssh->exec(
-            "tar -czf " . escapeshellarg($remoteTar) .
-            " -C " . escapeshellarg("/home/{$cleanUsername}/backups") .
-            " " . escapeshellarg($backup->filename)
-        );
-
-        if ($ssh->getExitStatus() !== 0) {
-            throw new \Exception("Failed to archive backup for download.");
-        }
-
         $password = $host->password;
         try {
             $password = Crypt::decryptString($host->password);
@@ -231,23 +204,79 @@ class ServerService
 
         $sftp = new SFTP($host->hostname, $host->port, 10);
         if (!$sftp->login($host->username, $password)) {
-            $ssh->exec("rm -f " . escapeshellarg($remoteTar));
             throw new \Exception("SFTP Authentication Failed to Host: " . $host->name);
         }
+        return $sftp;
+    }
 
-        $tmp = tempnam(sys_get_temp_dir(), 'backup_');
-        @unlink($tmp);
-        $localPath = $tmp . '.tar.gz';
+    /**
+     * Build (once, then cache) a fast-compressed tar of the backup folder.
+     * Returns [remoteTarPath, sizeBytes].
+     */
+    public function prepareBackupArchive(Server $server, \App\Models\Backup $backup): array
+    {
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $backup->filename)) {
+            throw new \Exception("Invalid backup filename.");
+        }
 
-        if (!$sftp->get($remoteTar, $localPath)) {
-            $ssh->exec("rm -f " . escapeshellarg($remoteTar));
-            @unlink($localPath);
+        @set_time_limit(0);
+
+        $host = $server->host;
+        $ssh = $this->getSSH($host);
+        $ssh->setTimeout(0);
+
+        $username = $this->escapeLinuxArg($server->ftp_username);
+        $cleanUsername = $server->ftp_username;
+        $backupsDir = "/home/{$cleanUsername}/backups";
+        $backupPath = "{$backupsDir}/{$backup->filename}";
+        // Cached archive lives next to the backup folder so repeat downloads are instant.
+        $remoteTar = "{$backupsDir}/{$backup->filename}.tar.gz";
+
+        $check = trim($ssh->exec("test -d " . escapeshellarg($backupPath) . " && echo OK || echo MISSING"));
+        if ($check !== 'OK') {
+            throw new \Exception("Backup folder not found on host.");
+        }
+
+        $exists = trim($ssh->exec("test -f " . escapeshellarg($remoteTar) . " && echo OK || echo MISSING"));
+        if ($exists !== 'OK') {
+            // GZIP=-1 = fastest gzip level (~3-5x faster than default -6, slightly bigger file).
+            // Run as the ftp user so file ownership stays correct.
+            $inner = "GZIP=-1 tar -czf " . escapeshellarg($remoteTar) .
+                " -C " . escapeshellarg($backupsDir) .
+                " " . escapeshellarg($backup->filename);
+            $ssh->exec("su - {$username} -c " . escapeshellarg($inner));
+
+            if ($ssh->getExitStatus() !== 0) {
+                $ssh->exec("rm -f " . escapeshellarg($remoteTar));
+                throw new \Exception("Failed to archive backup for download.");
+            }
+        }
+
+        $sftp = $this->getSFTP($host);
+        $stat = $sftp->stat($remoteTar);
+        if ($stat === false || empty($stat['size'])) {
+            throw new \Exception("Backup archive not found or empty.");
+        }
+
+        return [$remoteTar, (int) $stat['size']];
+    }
+
+    /**
+     * Stream the cached archive straight host -> browser, chunk by chunk.
+     * No temp file on the panel, low memory, download starts immediately.
+     */
+    public function streamBackupDownload(Server $server, \App\Models\Backup $backup, callable $emit): int
+    {
+        [$remoteTar, $size] = $this->prepareBackupArchive($server, $backup);
+
+        $sftp = $this->getSFTP($server->host);
+
+        $ok = $sftp->get($remoteTar, $emit);
+        if ($ok === false) {
             throw new \Exception("Failed to transfer backup archive from host.");
         }
 
-        $ssh->exec("rm -f " . escapeshellarg($remoteTar));
-
-        return $localPath;
+        return $size;
     }
 
     public function deleteBackup(Server $server, \App\Models\Backup $backup)
@@ -258,7 +287,7 @@ class ServerService
         $username = $this->escapeLinuxArg($server->ftp_username);
         $cleanUsername = $server->ftp_username;
         
-        $command = "su - {$username} -c 'rm -rf /home/{$cleanUsername}/backups/{$backup->filename}'";
+        $command = "su - {$username} -c 'rm -rf /home/{$cleanUsername}/backups/{$backup->filename} /home/{$cleanUsername}/backups/{$backup->filename}.tar.gz'";
         $ssh->exec($command);
 
         $backup->delete();

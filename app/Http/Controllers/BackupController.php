@@ -78,7 +78,10 @@ class BackupController extends Controller
             abort(403);
         }
 
-        $localPath = $this->serverService->downloadBackup($server, $backup);
+        // No PHP timeout: big backups need more than 30s, and streaming
+        // sends bytes continuously so proxies don't kill the connection.
+        @set_time_limit(0);
+        @ignore_user_abort(true);
 
         \App\Models\Log::create([
             'user_id' => auth()->user()->id,
@@ -87,7 +90,26 @@ class BackupController extends Controller
             'ip' => request()->ip()
         ]);
 
-        return response()->download($localPath, "{$backup->filename}.tar.gz")->deleteFileAfterSend(true);
+        // Get size upfront so the browser shows real progress immediately.
+        [$remoteTar, $size] = $this->serverService->prepareBackupArchive($server, $backup);
+        $filename = "{$backup->filename}.tar.gz";
+
+        return response()->streamDownload(function () use ($server, $backup) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            try {
+                $this->serverService->streamBackupDownload($server, $backup, function ($chunk) {
+                    echo $chunk;
+                    flush();
+                });
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Backup stream failed: " . $e->getMessage());
+            }
+        }, $filename, [
+            'Content-Type' => 'application/gzip',
+            'Content-Length' => (string) $size,
+        ]);
     }
 
     public function destroy(Server $server, Backup $backup)
