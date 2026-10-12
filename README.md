@@ -32,54 +32,11 @@ SOF2Panel is a premium, web-based management dashboard designed to seamlessly pr
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Quick Start
 
-### Start Here
-If you're setting this up on a VPS for the first time, follow the setup guide issue:
+For complete installation and VPS setup instructions, see:
 
-- [Setup Guide: How to Deploy SoF2Panel on a VPS](https://github.com/belalgalhom1/SoF2Panel/issues/1)
-
-### Prerequisites (Panel Server)
-- PHP 8.2 or higher
-- Composer
-- MySQL or MariaDB
-- Web Server (Nginx / Apache)
-
-### Prerequisites (Game Node / Host)
-- A Linux VPS (Ubuntu/Debian recommended)
-- `screen` installed (`apt install screen`)
-- A base directory containing the SOF2 dedicated server files (e.g., `/opt/sof2_base`)
-
-### Installation Steps
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/belalgalhom1/sof2panel.git
-   cd sof2panel
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   composer install
-   npm install && npm run build
-   ```
-
-3. **Set Permissions**
-   Ensure your web server has write access to the storage and cache directories:
-   ```bash
-   chmod -R 775 storage bootstrap/cache
-   chown -R www-data:www-data storage bootstrap/cache
-   ```
-
-4. **Run the Setup Wizard**
-   Simply point your web server (Nginx/Apache) to the `public` directory, and open your panel's URL in a web browser.
-   The built-in **Setup Wizard** will automatically guide you through configuring your database, running migrations, and creating your first Admin account!
-
-5. **Start the Cron Worker (Crucial for Server Monitoring)**
-   Add the following line to your server's crontab (`crontab -e`):
-   ```bash
-   * * * * * cd /var/www/sof2panel && php artisan schedule:run >> /dev/null 2>&1
-   ```
+👉 **[Setup Guide: How to Deploy SoF2Panel on a VPS](https://github.com/belalgalhom1/SoF2Panel/issues/1)**
 
 ---
 
