@@ -6,6 +6,7 @@ use App\Models\Host;
 use App\Models\Server;
 use App\Models\Game;
 use phpseclib3\Net\SSH2;
+use phpseclib3\Net\SFTP;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
@@ -190,6 +191,63 @@ class ServerService
         $ssh->exec($command);
 
         return true;
+    }
+
+    public function downloadBackup(Server $server, \App\Models\Backup $backup): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $backup->filename)) {
+            throw new \Exception("Invalid backup filename.");
+        }
+
+        $host = $server->host;
+        $ssh = $this->getSSH($host);
+        $ssh->setTimeout(0);
+
+        $cleanUsername = $server->ftp_username;
+        $backupPath = "/home/{$cleanUsername}/backups/{$backup->filename}";
+
+        $check = trim($ssh->exec("test -d " . escapeshellarg($backupPath) . " && echo OK || echo MISSING"));
+        if ($check !== 'OK') {
+            throw new \Exception("Backup folder not found on host.");
+        }
+
+        $remoteTar = "/tmp/backup_{$server->id}_{$backup->filename}.tar.gz";
+        $ssh->exec(
+            "tar -czf " . escapeshellarg($remoteTar) .
+            " -C " . escapeshellarg("/home/{$cleanUsername}/backups") .
+            " " . escapeshellarg($backup->filename)
+        );
+
+        if ($ssh->getExitStatus() !== 0) {
+            throw new \Exception("Failed to archive backup for download.");
+        }
+
+        $password = $host->password;
+        try {
+            $password = Crypt::decryptString($host->password);
+        } catch (\Exception $e) {
+            $password = $host->password;
+        }
+
+        $sftp = new SFTP($host->hostname, $host->port, 10);
+        if (!$sftp->login($host->username, $password)) {
+            $ssh->exec("rm -f " . escapeshellarg($remoteTar));
+            throw new \Exception("SFTP Authentication Failed to Host: " . $host->name);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'backup_');
+        @unlink($tmp);
+        $localPath = $tmp . '.tar.gz';
+
+        if (!$sftp->get($remoteTar, $localPath)) {
+            $ssh->exec("rm -f " . escapeshellarg($remoteTar));
+            @unlink($localPath);
+            throw new \Exception("Failed to transfer backup archive from host.");
+        }
+
+        $ssh->exec("rm -f " . escapeshellarg($remoteTar));
+
+        return $localPath;
     }
 
     public function deleteBackup(Server $server, \App\Models\Backup $backup)

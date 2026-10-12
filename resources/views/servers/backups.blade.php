@@ -47,6 +47,7 @@
                         <td style="padding: 1rem;">{{ $backup->created_at->format('Y-m-d H:i:s') }}</td>
                         <td style="padding: 1rem; text-align: right;">
                             <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a href="{{ route('servers.backups.download', [$server, $backup]) }}" class="btn" style="width: auto; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 0.5rem 1rem; text-decoration: none;">Download</a>
                                 <form action="{{ route('servers.backups.restore', [$server, $backup]) }}" method="POST" onsubmit="return confirm('Are you sure you want to restore this backup? ALL current files on the server will be PERMANENTLY deleted and replaced with this backup.');">
                                     @csrf
                                     <button type="submit" class="btn" style="width: auto; background: var(--warning); color: #111; border: none; padding: 0.5rem 1rem;">Restore</button>

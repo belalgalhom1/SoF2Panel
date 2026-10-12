@@ -70,6 +70,26 @@ class BackupController extends Controller
         return back()->with('success', 'Server successfully restored from backup! The server was stopped during restoration, you may start it now.');
     }
 
+    public function download(Server $server, Backup $backup)
+    {
+        $this->checkAccess($server);
+
+        if ($backup->server_id !== $server->id) {
+            abort(403);
+        }
+
+        $localPath = $this->serverService->downloadBackup($server, $backup);
+
+        \App\Models\Log::create([
+            'user_id' => auth()->user()->id,
+            'action' => 'Downloaded Backup',
+            'target' => "Downloaded backup {$backup->filename} for {$server->name}",
+            'ip' => request()->ip()
+        ]);
+
+        return response()->download($localPath, "{$backup->filename}.tar.gz")->deleteFileAfterSend(true);
+    }
+
     public function destroy(Server $server, Backup $backup)
     {
         $this->checkAccess($server);

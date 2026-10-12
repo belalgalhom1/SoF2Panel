@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::get('servers/{server}/backups', [\App\Http\Controllers\BackupController::class, 'index'])->name('servers.backups');
     Route::post('servers/{server}/backups', [\App\Http\Controllers\BackupController::class, 'store'])->name('servers.backups.store');
     Route::post('servers/{server}/backups/{backup}/restore', [\App\Http\Controllers\BackupController::class, 'restore'])->name('servers.backups.restore');
+    Route::get('servers/{server}/backups/{backup}/download', [\App\Http\Controllers\BackupController::class, 'download'])->name('servers.backups.download');
     Route::delete('servers/{server}/backups/{backup}', [\App\Http\Controllers\BackupController::class, 'destroy'])->name('servers.backups.destroy');
 
     // Web RCON
