@@ -5,27 +5,32 @@
 
 <br>
 
-SOF2Panel is a premium, web-based management dashboard designed to seamlessly provision, control, and manage Soldier of Fortune 2 game servers across multiple Linux nodes. Built with Laravel 11, it provides a modern server control panel for admins, community managers, and game hosts.
+SOF2Panel is a premium, web-based management dashboard designed to seamlessly provision, control, and manage Soldier of Fortune 2 game servers across multiple Linux nodes. Built with Laravel 13, it provides a modern server control panel for admins, community managers, and game hosts.
 
 ## ✨ Key Features
 
 - **Multi-Node Architecture**: Connect multiple Linux VPS instances via SSH. The panel acts as a master controller and provisions servers across your nodes instantly.
 - **Automated Provisioning**: With a single click, SOF2Panel creates a dedicated Linux user, assigns ports, safely copies base game files, and spins up a dedicated `screen` session.
+- **Import Existing Servers**: Already running a server manually on your VPS? Import it without losing a single file — the panel copies your existing folder into a new isolated Linux user, stops stale processes, and optionally deletes the source folder (system paths are always protected).
+- **Crash Monitor & Auto-Restart**: A per-minute monitor automatically restarts any server that should be online but went down. Toggleable per server.
 - **Granular Permissions**: Give your community managers access to specific servers. Control exactly what they can do (e.g., Allow "Start/Stop", but deny "Web FTP" and "RCON").
-- **Live Player Monitoring**: View real-time player counts and server status directly from the dashboard.
-- **Web FTP File Manager**: Browse, upload, download, and manage your `.cfg` and `.pk3` files directly from the browser without needing FileZilla.
+- **Live Player Monitoring**: View real-time player counts and server status directly from the dashboard, plus a dedicated live players page powered by UDP `getinfo` queries.
+- **Web FTP File Manager**: Browse, upload, download, rename, and manage your `.cfg` and `.pk3` files directly from the browser without needing FileZilla. Includes a built-in text editor.
 - **Web RCON Console**: Instantly send RCON commands (kick, map change, status) to your running server via the web interface.
-- **Automated Incremental Backups**: Schedule space-saving automatic backups for your game servers using native Linux hard links. Includes a 1-click restoration engine.
+- **Automated Incremental Backups**: Schedule space-saving automatic backups for your game servers using native Linux hard links, with per-server intervals and a configurable retention limit. Includes 1-click restoration and fast streamed `.tar.gz` downloads (cached, fastest-gzip compression).
+- **Full Server Customization**: Per-server ports, max clients, custom start scripts with template variables, and FTP/RCON password rotation — all from the browser.
+- **Audit Logging**: Every action (starts, stops, backups, imports, password changes) is recorded with user and IP in an admin-visible log.
+- **Game Templates**: Manage base file locations and start-script templates per game type, reused across all provisioned servers.
 
 - **External Authentication**: Securely bridge your panel with external databases (like XenForo) to allow users to log in using their forum credentials. Features a strict Admin-only "Import User" feature to keep access clean and controlled.
-- **Powerful REST API**: Admins can generate secure API keys to integrate their servers with Discord bots or external billing systems. The API supports fetching server data, starting/stopping/restarting servers, and more.
+- **Powerful REST API**: Admins can generate secure API keys to integrate their servers with Discord bots or external billing systems. The API supports fetching server data, starting/stopping/restarting servers, sending RCON commands, and more.
 - **Integrated Support Tickets**: A modern, real-time chat interface for users to submit issues directly to administrators. Features dynamic status management (Open, Solved, Closed), optional closure reasons, and a live ticket timeline.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Laravel 11 (PHP 8.2+)
+- **Backend**: Laravel 13 (PHP 8.3+)
 - **Frontend**: Blade Templates, Vanilla CSS (Glassmorphism design), Feather Icons
 - **Database**: MySQL / MariaDB
 - **Server Communication**: `phpseclib3` (Secure SSH2 Integration)
