@@ -102,7 +102,7 @@ class ServerController extends Controller
             'game_id' => 'required|exists:games,id',
             'port' => 'required|integer|min:1024|max:65535',
             'port_gold' => 'nullable|integer|min:1024|max:65535',
-            'existing_user' => 'required|string|max:32|regex:/^[a-z_][a-z0-9_-]*$/',
+            'source_path' => ['required', 'string', 'max:255', 'regex:#^/(?!.*\.\.)[A-Za-z0-9_\-./]+$#'],
             'ftp_username' => 'required|string|max:255|unique:servers|regex:/^[a-z_][a-z0-9_-]*$/',
             'max_clients' => 'required|integer|min:1|max:128',
             'rcon_password' => 'required|string',
@@ -133,13 +133,13 @@ class ServerController extends Controller
         ]);
 
         try {
-            $this->serverService->importServer($server, $request->existing_user, $ftpPassword);
+            $this->serverService->importServer($server, $request->source_path, $ftpPassword);
             $server->update(['is_active' => true]);
 
             \App\Models\Log::create([
                 'user_id' => auth()->user()->id,
                 'action' => 'Imported Server',
-                'target' => "Imported existing files from {$request->existing_user} as {$server->name}",
+                'target' => "Imported existing files from {$request->source_path} as {$server->name}",
                 'ip' => request()->ip()
             ]);
 

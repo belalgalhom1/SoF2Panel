@@ -11,9 +11,9 @@
     <div class="glass-panel wide">
         <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem; color: var(--text-muted);">
             <strong>How it works:</strong>
-            files are <strong>copied</strong> (never moved or deleted) from <code>/home/&lt;existing user&gt;</code>
-            into a new panel-managed user. The old user and its files stay untouched — delete them manually once the import works.
-            Any running screen session of the old user is stopped first so ports are free.
+            files are <strong>copied</strong> (never moved or deleted) from the source folder
+            into a new panel-managed user. The source stays untouched — delete it manually once the import works.
+            Any process still running from that folder is stopped first so ports are free.
             Needs ~2x disk space during the copy.
         </div>
 
@@ -45,8 +45,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Existing Linux User (files live in /home/this-user)</label>
-                    <input type="text" name="existing_user" class="form-input" value="{{ old('existing_user') }}" placeholder="e.g. sof2server" required>
+                    <label class="form-label">Source Folder (absolute path to your existing server files)</label>
+                    <input type="text" name="source_path" class="form-input" value="{{ old('source_path') }}" placeholder="e.g. /home/test1" required>
                 </div>
 
                 <div class="form-group">
