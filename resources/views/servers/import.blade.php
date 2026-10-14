@@ -79,6 +79,14 @@
                     <label class="form-label">RCON Password</label>
                     <input type="text" name="rcon_password" class="form-input" value="{{ old('rcon_password') }}" required>
                 </div>
+
+                <div class="form-group" style="grid-column: span 2;">
+                    <label style="display: flex; gap: 0.5rem; align-items: center; cursor: pointer;">
+                        <input type="checkbox" name="delete_source" value="1" {{ old('delete_source') ? 'checked' : '' }}>
+                        <span>Delete source folder after successful import</span>
+                    </label>
+                    <small style="color: var(--text-muted);">Only tick this if the copy worked and you no longer need the originals. The source is permanently removed with <code>rm -rf</code> after a successful copy — protected paths (<code>/, /home, /root, /opt, ...</code>) are never deleted.</small>
+                </div>
             </div>
 
             <div style="margin-top: 2rem; display: flex; gap: 1rem;">

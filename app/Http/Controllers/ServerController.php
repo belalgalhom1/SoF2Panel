@@ -107,6 +107,7 @@ class ServerController extends Controller
             'max_clients' => 'required|integer|min:1|max:128',
             'rcon_password' => 'required|string',
             'ftp_password' => 'nullable|string',
+            'delete_source' => 'nullable|boolean',
         ]);
 
         $ftpPassword = $request->ftp_password ?: Str::random(12);
@@ -133,7 +134,7 @@ class ServerController extends Controller
         ]);
 
         try {
-            $this->serverService->importServer($server, $request->source_path, $ftpPassword);
+            $warning = $this->serverService->importServer($server, $request->source_path, $ftpPassword, $request->boolean('delete_source'));
             $server->update(['is_active' => true]);
 
             \App\Models\Log::create([
@@ -143,7 +144,14 @@ class ServerController extends Controller
                 'ip' => request()->ip()
             ]);
 
-            return redirect()->route('servers.index')->with('success', 'Server imported successfully. Files were copied — old user untouched. You can start the server now.');
+            $message = 'Server imported successfully. Files were copied — source untouched. You can start the server now.';
+            if ($request->boolean('delete_source') && !$warning) {
+                $message = 'Server imported successfully and source folder deleted. You can start the server now.';
+            } elseif ($warning) {
+                $message .= ' Warning: ' . $warning;
+            }
+
+            return redirect()->route('servers.index')->with('success', $message);
         } catch (\Exception $e) {
             $server->delete(); // free the ftp_username so import can be retried cleanly
             return back()->with('error', 'Failed to import server: ' . $e->getMessage())->withInput();

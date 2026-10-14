@@ -57,7 +57,7 @@ class ServerService
         $ssh->exec("chown -R {$username}:{$username} {$homeDir}/");
     }
 
-    public function importServer(Server $server, string $sourcePath, string $password)
+    public function importServer(Server $server, string $sourcePath, string $password, bool $deleteSource = false): ?string
     {
         // Strict Linux username validation to keep `useradd` calls safe.
         if (!preg_match('/^[a-z_][a-z0-9_-]{0,31}$/', $server->ftp_username)) {
@@ -115,7 +115,26 @@ class ServerService
 
         $ssh->exec("chown -R {$new}:{$new} " . escapeshellarg($newHome . '/'));
 
-        return true;
+        if ($deleteSource) {
+            // Safety: never delete shallow/system paths.
+            $protected = ['/', '/home', '/root', '/opt', '/var', '/etc', '/usr', '/tmp'];
+            if (in_array($sourcePath, $protected, true) || substr_count($sourcePath, '/') < 2) {
+                return "Import succeeded, but source '{$sourcePath}' was kept (protected path — delete it manually).";
+            }
+
+            // Sanity: destination must not be empty, otherwise the copy failed silently.
+            $ssh->exec("test -n \"$(ls -A " . escapeshellarg($newHome) . ")\"");
+            if ($ssh->getExitStatus() !== 0) {
+                throw new \Exception("Import copy looks empty — source kept for safety.");
+            }
+
+            $ssh->exec("rm -rf " . escapeshellarg($sourcePath));
+            if ($ssh->getExitStatus() !== 0) {
+                return "Files imported, but source '{$sourcePath}' could not be deleted. Delete it manually.";
+            }
+        }
+
+        return null;
     }
 
     public function startServer(Server $server)
