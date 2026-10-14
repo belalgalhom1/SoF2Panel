@@ -6,9 +6,14 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 style="margin: 0;">Game Servers</h2>
         @if(auth()->user()->isAdmin())
-        <a href="{{ route('servers.create') }}" class="btn btn-primary" style="width: auto;">
-            <i data-feather="plus" style="width: 16px; height: 16px; margin-right: 0.5rem;"></i> Create Server
-        </a>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ route('servers.import') }}" class="btn" style="width: auto; border: 1px solid var(--border); color: var(--text-main); background: var(--bg-card);">
+                <i data-feather="download" style="width: 16px; height: 16px; margin-right: 0.5rem;"></i> Import Server
+            </a>
+            <a href="{{ route('servers.create') }}" class="btn btn-primary" style="width: auto;">
+                <i data-feather="plus" style="width: 16px; height: 16px; margin-right: 0.5rem;"></i> Create Server
+            </a>
+        </div>
         @endif
     </div>
 

@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('servers/import', [\App\Http\Controllers\ServerController::class, 'importForm'])->name('servers.import');
+    Route::post('servers/import', [\App\Http\Controllers\ServerController::class, 'import'])->name('servers.import.store');
     Route::resource('servers', \App\Http\Controllers\ServerController::class)->except(['edit', 'update']);
     Route::get('servers/{server}/settings', [\App\Http\Controllers\ServerController::class, 'settings'])->name('servers.settings');
     Route::post('servers/{server}/start', [\App\Http\Controllers\ServerController::class, 'start'])->name('servers.start');

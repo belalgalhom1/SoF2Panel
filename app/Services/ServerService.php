@@ -57,6 +57,63 @@ class ServerService
         $ssh->exec("chown -R {$username}:{$username} {$homeDir}/");
     }
 
+    public function importServer(Server $server, string $existingUser, string $password)
+    {
+        // Strict Linux username validation to keep `su`/`useradd` calls safe.
+        foreach (['existing user' => $existingUser, 'new user' => $server->ftp_username] as $label => $name) {
+            if (!preg_match('/^[a-z_][a-z0-9_-]{0,31}$/', $name)) {
+                throw new \Exception("Invalid {$label} '{$name}'. Use lowercase letters, digits, -, _ (max 32 chars).");
+            }
+        }
+        if ($existingUser === $server->ftp_username) {
+            throw new \Exception("Existing user and new FTP username must be different.");
+        }
+
+        $host = $server->host;
+        $ssh = $this->getSSH($host);
+        $ssh->setTimeout(0);
+
+        $old = $this->escapeLinuxArg($existingUser);
+        $new = $this->escapeLinuxArg($server->ftp_username);
+        $oldHome = "/home/{$existingUser}";
+        $newHome = "/home/{$server->ftp_username}";
+        $passwordEscaped = $this->escapeLinuxArg($server->ftp_username . ':' . $password);
+
+        // Old user + home must exist; new user must NOT exist (we create it).
+        $ssh->exec("id {$old} >/dev/null 2>&1");
+        if ($ssh->getExitStatus() !== 0) throw new \Exception("Existing Linux user '{$existingUser}' not found on host {$host->name}.");
+
+        $ssh->exec("test -d " . escapeshellarg($oldHome));
+        if ($ssh->getExitStatus() !== 0) throw new \Exception("Home directory '{$oldHome}' not found on host.");
+
+        $ssh->exec("id {$new} >/dev/null 2>&1");
+        if ($ssh->getExitStatus() === 0) throw new \Exception("User '{$server->ftp_username}' already exists on host — pick another FTP username.");
+
+        // Old server may still be running: stop its screens so ports/files are free.
+        // Best effort — never fails the import.
+        $ssh->exec("su - {$old} -c 'pkill screen' 2>/dev/null; pkill -u {$old} screen 2>/dev/null; true");
+        sleep(2);
+
+        $output = $ssh->exec("useradd -m -d " . escapeshellarg($newHome) . " -s /bin/bash {$new}");
+        if ($ssh->getExitStatus() !== 0) throw new \Exception("Failed to create user: " . $output);
+
+        $output = $ssh->exec("echo {$passwordEscaped} | chpasswd");
+        if ($ssh->getExitStatus() !== 0) {
+            $ssh->exec("userdel -r {$new} 2>/dev/null; true");
+            throw new \Exception("Failed to set password: " . $output);
+        }
+
+        // COPY (not move): old files stay untouched, nothing is lost.
+        $output = $ssh->exec("cp -a " . escapeshellarg($oldHome . '/.') . " " . escapeshellarg($newHome . '/'));
+        if ($ssh->getExitStatus() !== 0) {
+            throw new \Exception("Failed to copy server files from {$oldHome}. Output: " . $output);
+        }
+
+        $ssh->exec("chown -R {$new}:{$new} " . escapeshellarg($newHome . '/'));
+
+        return true;
+    }
+
     public function startServer(Server $server)
     {
         $host = $server->host;

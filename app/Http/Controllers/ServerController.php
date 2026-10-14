@@ -87,6 +87,69 @@ class ServerController extends Controller
         }
     }
 
+    public function importForm()
+    {
+        $hosts = Host::all();
+        $games = Game::all();
+        return view('servers.import', compact('hosts', 'games'));
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'host_id' => 'required|exists:hosts,id',
+            'game_id' => 'required|exists:games,id',
+            'port' => 'required|integer|min:1024|max:65535',
+            'port_gold' => 'nullable|integer|min:1024|max:65535',
+            'existing_user' => 'required|string|max:32|regex:/^[a-z_][a-z0-9_-]*$/',
+            'ftp_username' => 'required|string|max:255|unique:servers|regex:/^[a-z_][a-z0-9_-]*$/',
+            'max_clients' => 'required|integer|min:1|max:128',
+            'rcon_password' => 'required|string',
+            'ftp_password' => 'nullable|string',
+        ]);
+
+        $ftpPassword = $request->ftp_password ?: Str::random(12);
+        $game = Game::findOrFail($request->game_id);
+
+        $portError = $this->checkPortConflict($request->host_id, $request->port, $request->port_gold);
+        if ($portError) {
+            return back()->with('error', $portError)->withInput();
+        }
+
+        $server = Server::create([
+            'name' => $request->name,
+            'host_id' => $request->host_id,
+            'game_id' => $request->game_id,
+            'start_script' => $game->start_script,
+            'port' => $request->port,
+            'port_gold' => $request->port_gold,
+            'ftp_username' => $request->ftp_username,
+            'ftp_password' => Crypt::encryptString($ftpPassword),
+            'max_clients' => $request->max_clients,
+            'rcon_password' => Crypt::encryptString($request->rcon_password),
+            'is_active' => false,
+            'auto_restart' => true,
+        ]);
+
+        try {
+            $this->serverService->importServer($server, $request->existing_user, $ftpPassword);
+            $server->update(['is_active' => true]);
+
+            \App\Models\Log::create([
+                'user_id' => auth()->user()->id,
+                'action' => 'Imported Server',
+                'target' => "Imported existing files from {$request->existing_user} as {$server->name}",
+                'ip' => request()->ip()
+            ]);
+
+            return redirect()->route('servers.index')->with('success', 'Server imported successfully. Files were copied — old user untouched. You can start the server now.');
+        } catch (\Exception $e) {
+            $server->delete(); // free the ftp_username so import can be retried cleanly
+            return back()->with('error', 'Failed to import server: ' . $e->getMessage())->withInput();
+        }
+    }
+
     public function destroy(Server $server)
     {
         $user = auth()->user();

@@ -67,9 +67,10 @@
                 </div>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; align-items: center;">
                 <button type="submit" class="btn btn-primary" style="width: auto;">Provision Server</button>
                 <a href="{{ route('servers.index') }}" class="btn" style="color: var(--text-muted); border: 1px solid var(--border);">Cancel</a>
+                <a href="{{ route('servers.import') }}" style="margin-left: auto; font-size: 0.875rem; color: var(--text-muted);">Have an existing server? Import it instead →</a>
             </div>
         </form>
     </div>
