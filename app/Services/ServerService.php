@@ -154,13 +154,12 @@ class ServerService
         }
 
         $clean_rcon = $this->escapeLinuxArg($rconPass);
-        $clean_name = $this->escapeLinuxArg($server->name);
 
         $base_script = $server->start_script ?: $server->game->start_script;
 
         $script = str_replace(
-            ['{server_port}', '{port}', '{server_port_gold}', '{max_clients}', '{clients}', '{rconpassword}', '{rcon_password}', '{server_account}', '{server_name}'],
-            [$server->port, $server->port, $server->port_gold ?? $server->port, $server->max_clients, $server->max_clients, $clean_rcon, $clean_rcon, $username, $clean_name],
+            ['{server_port}', '{port}', '{server_port_gold}', '{max_clients}', '{clients}', '{rconpassword}', '{rcon_password}', '{server_account}'],
+            [$server->port, $server->port, $server->port_gold ?? $server->port, $server->max_clients, $server->max_clients, $clean_rcon, $clean_rcon, $username],
             $base_script
         );
 

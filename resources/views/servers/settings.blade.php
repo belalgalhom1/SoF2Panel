@@ -92,7 +92,6 @@
                 </div>
                 <div style="margin-top: 1rem;">
                     <button type="submit" class="btn btn-primary" style="width: auto;">Save General Settings</button>
-                    <p class="subtitle" style="font-size: 0.8rem; margin-top: 0.5rem;">Note: Changes to these settings only take effect after restarting the server manually.</p>
                 </div>
             </form>
         </div>
@@ -125,7 +124,7 @@
             <form method="POST" action="{{ route('servers.script.update', $server) }}">
                 @csrf
                 <div class="form-group">
-                    <p class="subtitle" style="font-size: 0.8rem; margin-bottom: 0.5rem;">Available variables: {server_port}, {server_port_gold}, {max_clients}, {rconpassword}, {server_account}, {server_name}</p>
+                    <p class="subtitle" style="font-size: 0.8rem; margin-bottom: 0.5rem;">Available variables: {server_port}, {server_port_gold}, {max_clients}, {rconpassword}, {server_account}</p>
                     <textarea name="start_script" class="form-input" style="font-family: monospace; min-height: 150px; background: rgba(0,0,0,0.2);" required>{{ $server->start_script ?? $server->game->start_script }}</textarea>
                 </div>
                 <div style="margin-top: 1.5rem;">

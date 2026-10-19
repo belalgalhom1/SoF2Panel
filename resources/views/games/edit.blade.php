@@ -25,7 +25,7 @@
             <div class="form-group">
                 <label class="form-label">Start Script</label>
                 <textarea name="start_script" class="form-input" style="min-height: 150px; font-family: monospace;" required>{{ old('start_script', $game->start_script) }}</textarea>
-                <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">Available variables: {server_port}, {server_port_gold}, {max_clients}, {rconpassword}, {server_account}, {server_name}</small>
+                <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">Available variables: {server_port}, {server_port_gold}, {max_clients}, {rconpassword}, {server_account}</small>
             </div>
 
             <div style="margin-top: 2rem; display: flex; gap: 1rem;">
