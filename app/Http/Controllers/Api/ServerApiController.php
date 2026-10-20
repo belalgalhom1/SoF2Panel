@@ -179,7 +179,8 @@ class ServerApiController extends Controller
 
         try {
             $rconController = app(\App\Http\Controllers\WebRconController::class);
-            $rconResponse = $rconController->sendRconCommand($host, $port, $password, $command);
+            // Use locked RCON command to prevent conflicts with other RCON requests
+            $rconResponse = $rconController->sendRconCommandWithLock($server->id, $host, $port, $password, $command);
             
             $cleaned = preg_replace('/\^[0-9]/', '', $rconResponse);
             $cleaned = preg_replace('/^\xff\xff\xff\xffprint\n/', '', $cleaned);

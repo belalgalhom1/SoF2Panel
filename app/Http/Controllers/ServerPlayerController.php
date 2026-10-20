@@ -40,7 +40,8 @@ class ServerPlayerController extends Controller
         $password = \Illuminate\Support\Facades\Crypt::decryptString($server->rcon_password);
 
         try {
-            $response = $rconController->sendRconCommand($host, $port, $password, 'status');
+            // Use locked RCON command to prevent conflicts with other RCON requests
+            $response = $rconController->sendRconCommandWithLock($server->id, $host, $port, $password, 'status');
             
             $cleaned = preg_replace('/\^[0-9]/', '', $response);
             $cleaned = preg_replace('/^\xff\xff\xff\xffprint\n/', '', $cleaned);

@@ -75,11 +75,11 @@ class ServerPasswordController extends Controller
 
             $rconController = app(\App\Http\Controllers\WebRconController::class);
 
-            $rconController->sendRconCommand($host, $port, $oldPassword, "set rconpassword \"$newPassword\"");
+            $rconController->sendRconCommandWithLock($server->id, $host, $port, $oldPassword, "set rconpassword \"$newPassword\"");
 
             usleep(500000);
 
-            $verifyResponse = $rconController->sendRconCommand($host, $port, $newPassword, "rconpassword");
+            $verifyResponse = $rconController->sendRconCommandWithLock($server->id, $host, $port, $newPassword, "rconpassword");
 
             if (str_contains($verifyResponse, 'Error') || empty(trim($verifyResponse))) {
                 return back()->with('error', 'Failed to verify the new RCON password on the server. Old password is still active.');

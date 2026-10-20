@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Server;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Cache;
 
 class WebRconController extends Controller
 {
@@ -17,6 +18,24 @@ class WebRconController extends Controller
                 abort(403);
             }
         }
+    }
+
+    /**
+     * Acquire a Redis lock for RCON commands to prevent concurrent access.
+     * Returns a closure that releases the lock when called.
+     */
+    protected function acquireRconLock(int $serverId, int $timeoutSeconds = 10)
+    {
+        $lock = Cache::lock("rcon:server:{$serverId}", $timeoutSeconds);
+        
+        $acquired = $lock->block($timeoutSeconds);
+        if (!$acquired) {
+            throw new \Exception("RCON lock timeout for server {$serverId}");
+        }
+        
+        return function() use ($lock) {
+            $lock->release();
+        };
     }
 
     public function index(Server $server)
@@ -42,7 +61,13 @@ class WebRconController extends Controller
             $password = $server->rcon_password;
         }
         
-        $response = $this->sendRconCommand($host, $port, $password, $command);
+        // Acquire lock to prevent concurrent RCON commands
+        $releaseLock = $this->acquireRconLock($server->id);
+        try {
+            $response = $this->sendRconCommand($host, $port, $password, $command);
+        } finally {
+            $releaseLock();
+        }
         
         $cleaned = preg_replace('/\^[0-9]/', '', $response);
 
@@ -57,6 +82,19 @@ class WebRconController extends Controller
             'response' => trim($cleaned),
             'timestamp' => now()->format('Y-m-d H:i:s')
         ]);
+    }
+
+    /**
+     * Send RCON command with locking (for external use, e.g., from ServerPlayerController)
+     */
+    public function sendRconCommandWithLock(int $serverId, $ip, $port, $password, $command)
+    {
+        $releaseLock = $this->acquireRconLock($serverId);
+        try {
+            return $this->sendRconCommand($ip, $port, $password, $command);
+        } finally {
+            $releaseLock();
+        }
     }
 
     public function sendRconCommand($ip, $port, $password, $command)
